@@ -5,14 +5,20 @@ import Protocol.MessageType;
 import java.util.Objects;
 
 /**
-Classe permettant au client de se présenter au serveur
+ * Classe permettant au client de se présenter au serveur
  */
 public class HelloMessage implements Message{
-    //identifiant de la requête
+    /**
+     * identifiant de la requête
+     */
     private int requestId;
-    //nom du joueur
+    /**
+     * nom du joueur
+     */
     private String playerName;
-    //type de la requête, en const car le type ne changera jamais
+    /**
+     * type de la requête, en const car le type ne changera jamais
+     */
     private static final MessageType TYPE=MessageType.HELLO;
 
     /**
@@ -32,6 +38,10 @@ public class HelloMessage implements Message{
         this.playerName = playerName;
     }
 
+    /**
+     * Permet d'avoir le nom du joueur
+     * @return le nom du joueur
+     */
     public String getPlayerName() {
         return playerName;
     }
@@ -46,6 +56,11 @@ public class HelloMessage implements Message{
         return TYPE;
     }
 
+    /**
+     * Permet de comparer deux HelloMessage
+     * @param o l'objet à comparer
+     * @return true si les HelloMessage sont identiques, false sinon
+     */
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
@@ -53,11 +68,19 @@ public class HelloMessage implements Message{
         return requestId == that.requestId && Objects.equals(playerName, that.playerName);
     }
 
+    /**
+     * Permet d'hacher un HelloMessage
+     * @return l'hash du HelloMessage
+     */
     @Override
     public int hashCode() {
         return Objects.hash(requestId, playerName);
     }
 
+    /**
+     * Permet de convertir un HelloMessage en String
+     * @return le HelloMessage en String
+     */
     @Override
     public String toString() {
         return "HelloMessage{" +
