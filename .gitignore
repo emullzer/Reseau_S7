@@ -1,0 +1,29 @@
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# CLion / IntelliJ
+.idea/
+**/.idea/
+
+# CMake
+cmake-build-*/
+**/cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Fichiers compilés
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Vim
+*.swp
+*.swo
