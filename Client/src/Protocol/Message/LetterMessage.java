@@ -5,7 +5,7 @@ import Protocol.MessageType;
 import java.util.Objects;
 
 /**
- * Classe permettant au client de se présenter au serveur
+ * Classe permettant au client d'envoyer une lettre
  */
 public class LetterMessage implements Message{
     /**
@@ -44,7 +44,9 @@ public class LetterMessage implements Message{
         if(Character.isWhitespace(letter)){
             throw new IllegalArgumentException("letter must not be a whitespace");
         }
-        //TODO vérifier si c'est une lettre avec un accent
+        if(!Character.isLetter(letter)){
+            throw new IllegalArgumentException("letter must be a letter");
+        }
         this.requestId = requestId;
         this.sessionId = sessionId;
         this.letter = letter;
