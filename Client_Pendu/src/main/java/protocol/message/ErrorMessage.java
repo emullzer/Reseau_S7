@@ -1,12 +1,14 @@
-package Protocol.Message;
+package protocol.message;
 
-import Protocol.MessageType;
+import protocol.enumMessage.MessageError;
+import protocol.enumMessage.MessageType;
 
 import java.util.Objects;
 
 /**
  * Classe permettant de représenter un message d'erreur
  */
+//TODO mettre en place si le json est cassé et pas de request_id
 public class ErrorMessage implements Message{
     /**
      * message d'erreur
@@ -15,7 +17,7 @@ public class ErrorMessage implements Message{
     /**
      * code d'erreur
      */
-    private int code;
+    private MessageError code;
     /**
      * identifiant de la requête
      */
@@ -31,7 +33,16 @@ public class ErrorMessage implements Message{
      * @param code code d'erreur
      * @param requestId identifiant de la requête
      */
-    public ErrorMessage(String message, int code, int requestId) {
+    public ErrorMessage(String message, MessageError code, int requestId) {
+        if(message==null||message.isEmpty()){
+            throw new IllegalArgumentException("message must not be null or empty");
+        }
+        if(code==null){
+            throw new IllegalArgumentException("code must be not null");
+        }
+        if(requestId<0||requestId==0){
+            throw new IllegalArgumentException("requestId must be positive");
+        }
         this.message = message;
         this.code = code;
         this.requestId = requestId;
@@ -41,7 +52,7 @@ public class ErrorMessage implements Message{
      * Retourne le code d'erreur
      * @return le code d'erreur
      */
-    public int getCode() {
+    public MessageError getCode() {
         return code;
     }
 
@@ -89,11 +100,11 @@ public class ErrorMessage implements Message{
 
     @Override
     public MessageType getType() {
-        return null;
+        return TYPE;
     }
 
     @Override
     public int getRequestId() {
-        return 0;
+        return requestId;
     }
 }

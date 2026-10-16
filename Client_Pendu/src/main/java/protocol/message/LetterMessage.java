@@ -1,6 +1,6 @@
-package Protocol.Message;
+package protocol.message;
 
-import Protocol.MessageType;
+import protocol.enumMessage.MessageType;
 
 import java.util.Objects;
 
@@ -54,12 +54,12 @@ public class LetterMessage implements Message{
 
     @Override
     public MessageType getType() {
-        return null;
+        return TYPE;
     }
 
     @Override
     public int getRequestId() {
-        return 0;
+        return requestId;
     }
 
     public char getLetter() {

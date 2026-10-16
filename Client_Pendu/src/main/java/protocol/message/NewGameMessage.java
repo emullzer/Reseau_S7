@@ -1,6 +1,6 @@
-package Protocol.Message;
+package protocol.message;
 
-import Protocol.MessageType;
+import protocol.enumMessage.MessageType;
 
 import java.util.Objects;
 

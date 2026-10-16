@@ -1,6 +1,6 @@
-package Protocol.Message;
+package protocol.message;
 
-import Protocol.MessageType;
+import protocol.enumMessage.MessageType;
 
 import java.util.Objects;
 
@@ -27,6 +27,12 @@ public class QuitMessage implements Message{
      * @param sessionId l'identifiant de la session
      */
     public QuitMessage(int requestId, int sessionId) {
+        if(requestId<0||requestId==0){
+            throw new IllegalArgumentException("requestId must be positive");
+        }
+        if(sessionId<0||sessionId==0){
+            throw new IllegalArgumentException("sessionId must be positive");
+        }
         this.requestId = requestId;
         this.sessionId = sessionId;
     }
@@ -66,11 +72,11 @@ public class QuitMessage implements Message{
 
     @Override
     public MessageType getType() {
-        return null;
+        return TYPE;
     }
 
     @Override
     public int getRequestId() {
-        return 0;
+        return requestId;
     }
 }
