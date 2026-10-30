@@ -15,23 +15,31 @@ public class QuitMessage implements Message{
     /**
      * Identifiant de la session
      */
-    private int sessionId;
+    private String sessionId;
     /**
      * Type du message
      */
     private static final MessageType TYPE=MessageType.QUIT;
 
     /**
+     * Retourne l'identifiant de la session
+     * @return l'identifiant de la session
+     */
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    /**
      * Constructeur de la classe QuitMessage
      * @param requestId l'identifiant de la requête
      * @param sessionId l'identifiant de la session
      */
-    public QuitMessage(int requestId, int sessionId) {
+    public QuitMessage(int requestId, String sessionId) {
         if(requestId<0||requestId==0){
             throw new IllegalArgumentException("requestId must be positive");
         }
-        if(sessionId<0||sessionId==0){
-            throw new IllegalArgumentException("sessionId must be positive");
+        if(sessionId==null||sessionId.isBlank()){
+            throw new IllegalArgumentException("sessionId mustn't be null or empty");
         }
         this.requestId = requestId;
         this.sessionId = sessionId;

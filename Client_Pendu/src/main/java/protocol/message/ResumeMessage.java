@@ -16,7 +16,7 @@ public class ResumeMessage implements Message{
     /**
      * Identifiant de la session
      */
-    private int sessionId;
+    private String sessionId;
     /**
      * Type du message
      */
@@ -32,12 +32,12 @@ public class ResumeMessage implements Message{
      * @param sessionId l'identifiant de la session
      * @param playerName le nom du joueur
      */
-    public ResumeMessage(int requestId, int sessionId, String playerName) {
+    public ResumeMessage(int requestId, String sessionId, String playerName) {
         if(requestId<0||requestId==0){
             throw new IllegalArgumentException("requestId must be positive");
         }
-        if(sessionId<0||sessionId==0){
-            throw new IllegalArgumentException("sessionId must be positive");
+        if(sessionId==null||sessionId.isBlank()){
+            throw new IllegalArgumentException("sessionId mustn't be null or empty");
         }
         if(playerName==null||playerName.isEmpty()){
             throw new IllegalArgumentException("playerName must not be null or empty");
@@ -51,7 +51,7 @@ public class ResumeMessage implements Message{
      * Permet de récupérer l'identifiant de la session
      * @return l'identifiant de la session
      */
-    public int getSessionId() {
+    public String getSessionId() {
         return sessionId;
     }
 

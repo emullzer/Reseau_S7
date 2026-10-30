@@ -23,7 +23,7 @@ public class StateMessage implements Message {
     /**
      * Identifiant de la session
      */
-    private final int sessionId;
+    private final String sessionId;
     /**
      * Statut du jeu (IN_PROGRESS, WIN, LOSE, ABORTED)
      */
@@ -55,13 +55,13 @@ public class StateMessage implements Message {
      * @param remainingAttempts nombre de tentatives restantes
      * @param revealedWord mot révélé, ou null s'il est absent
      */
-    public StateMessage(int requestId, int sessionId, MessageState state, String word,
+    public StateMessage(int requestId, String sessionId, MessageState state, String word,
                         List<Character> triedLetters, int remainingAttempts, String revealedWord) {
         if (requestId <= 0) {
             throw new IllegalArgumentException("requestId must be positive");
         }
-        if (sessionId <= 0) {
-            throw new IllegalArgumentException("sessionId must be positive");
+        if(sessionId==null||sessionId.isBlank()){
+            throw new IllegalArgumentException("sessionId mustn't be null or empty");
         }
         if (state == null) {
             throw new IllegalArgumentException("state must not be null");
@@ -96,7 +96,7 @@ public class StateMessage implements Message {
      * @param triedLetters lettres déjà essayées
      * @param remainingAttempts nombre de tentatives restantes
      */
-    public StateMessage(int requestId, int sessionId, MessageState state, String word,
+    public StateMessage(int requestId, String sessionId, MessageState state, String word,
                         List<Character> triedLetters, int remainingAttempts) {
         this(requestId, sessionId, state, word, triedLetters, remainingAttempts, null);
     }
@@ -137,7 +137,7 @@ public class StateMessage implements Message {
      * Retourne l'identifiant de la session
      * @return l'identifiant de la session
      */
-    public int getSessionId() {
+    public String getSessionId() {
         return sessionId;
     }
 

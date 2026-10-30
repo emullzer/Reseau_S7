@@ -15,7 +15,7 @@ public class LetterMessage implements Message{
     /**
      * l'identifiant de la session
      */
-    private int sessionId;
+    private String sessionId;
     /**
      * type du message
      */
@@ -31,12 +31,12 @@ public class LetterMessage implements Message{
      * @param sessionId l'identifiant de la session
      * @param letter la lettre à envoyer
      */
-    public LetterMessage(int requestId, int sessionId, char letter) {
+    public LetterMessage(int requestId, String sessionId, char letter) {
         if(requestId<0||requestId==0){
             throw new IllegalArgumentException("requestId must be positive");
         }
-        if(sessionId<0||sessionId==0){
-            throw new IllegalArgumentException("sessionId must be positive");
+        if(sessionId==null||sessionId.isBlank()){
+            throw new IllegalArgumentException("sessionId mustn't be null or empty");
         }
         if(Character.isDigit(letter)){
             throw new IllegalArgumentException("letter must not be a digit");
@@ -66,7 +66,7 @@ public class LetterMessage implements Message{
         return letter;
     }
 
-    public int getSessionId() {
+    public String getSessionId() {
         return sessionId;
     }
 
