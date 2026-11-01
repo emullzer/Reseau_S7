@@ -1,28 +1,65 @@
-//
-// Created by mulle1149u on 15/10/2026.
-//
-
-#include "socket_server.h"
-
-#include <functional>
-#include <string>
+// server_socket.hpp : socket d'ecoute (bind, listen, accept)
+#pragma once
+#include <netdb.h>
 #include <sys/socket.h>
+#include <unistd.h>
+#include <cstdio>
+#include <cstring>
+#include "connexion_client.h"
 
-/**
- * Classe qui initialise la socket et toutes les informations nécéssaires à la connexion
- * @param port port pour la socket
- */
-socket_server::socket_server(const std::string& port) {
-    addrinfo hints{}, *res = nullptr;
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
+class ServerSocket {
+public:
+    explicit ServerSocket(const char* port) : port_(port) {}
+    ~ServerSocket() { if (fd_ >= 0) close(fd_); }
 
-    getaddrinfo(NULL, port.c_str(), &hints, &res);
-    int s = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    ServerSocket(const ServerSocket&) = delete;
+    ServerSocket& operator=(const ServerSocket&) = delete;
 
-    int yes = 1;
-    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
-    std::bind(s, res->ai_addr, res->ai_addrlen);
-    listen(s, 5);
-}
+    // Prepare l'ecoute. false en cas d'erreur (message affiche)
+    bool start() {
+        addrinfo hints;
+        memset(&hints, 0, sizeof hints);
+        hints.ai_family   = AF_UNSPEC;
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_flags    = AI_PASSIVE;
+
+        addrinfo* res = nullptr;
+        int rc = getaddrinfo(nullptr, port_, &hints, &res);
+        if (rc != 0) {
+            fprintf(stderr, "getaddrinfo : %s\n", gai_strerror(rc));
+            return false;
+        }
+
+        fd_ = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+        if (fd_ < 0) {
+            perror("socket");
+            freeaddrinfo(res);
+            return false;
+        }
+
+        int yes = 1;
+        setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
+
+        if (bind(fd_, res->ai_addr, res->ai_addrlen) < 0) {
+            perror("bind");
+            freeaddrinfo(res);
+            return false;
+        }
+        freeaddrinfo(res);
+
+        if (listen(fd_, SOMAXCONN) < 0) {
+            perror("listen");
+            return false;
+        }
+        return true;
+    }
+
+    // Attend un client. Renvoie une Connection (valid() est faux en cas d'erreur)
+    connexionClient accept_client() {
+        return Connection(accept(fd_, nullptr, nullptr));
+    }
+
+private:
+    const char* port_;
+    int fd_ = -1;
+};
