@@ -7,13 +7,13 @@
 #include <cstring>
 #include "connexion_client.h"
 
-class ServerSocket {
+class serverSocket {
 public:
-    explicit ServerSocket(const char* port) : port_(port) {}
-    ~ServerSocket() { if (fd_ >= 0) close(fd_); }
+    explicit serverSocket(const char* port) : port_(port) {}
+    ~serverSocket() { if (fd_ >= 0) close(fd_); }
 
-    ServerSocket(const ServerSocket&) = delete;
-    ServerSocket& operator=(const ServerSocket&) = delete;
+    serverSocket(const serverSocket&) = delete;
+    serverSocket& operator=(const serverSocket&) = delete;
 
     // Prepare l'ecoute. false en cas d'erreur (message affiche)
     bool start() {
@@ -54,9 +54,9 @@ public:
         return true;
     }
 
-    // Attend un client. Renvoie une Connection (valid() est faux en cas d'erreur)
+    // Attend un client. Renvoie une Connexion (valid() est faux en cas d'erreur)
     connexionClient accept_client() {
-        return Connection(accept(fd_, nullptr, nullptr));
+        return connexionClient(accept(fd_, nullptr, nullptr));
     }
 
 private:

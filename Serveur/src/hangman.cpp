@@ -3,54 +3,44 @@
 //
 
 #include "hangman.h"
-#include <array>
 #include <cctype>
-#include <string>
 
-enum class Outcome { Hit, Miss, Already, Invalid, Won, Lost };
+Hangman::Hangman(const std::string& secret) : secret_(secret) {}
 
-class Hangman {
-public:
-    static constexpr int kMaxErrors = 6;
+Outcome Hangman::guess(char raw) {
+    unsigned char u = static_cast<unsigned char>(raw);
+    if (!isalpha(u)) return Outcome::INVALID_LETTER;
 
-    explicit Hangman(const std::string& secret) : secret_(secret) {}
+    int idx = toupper(u) - 'A';
+    if (tried_[idx]) return Outcome::ALREADY_USED;
+    tried_[idx] = true;
 
-    Outcome guess(char raw) {
-        unsigned char u = static_cast<unsigned char>(raw);
-        if (!isalpha(u)) return Outcome::Invalid;
-
-        int idx = toupper(u) - 'A';
-        if (tried_[idx]) return Outcome::Already;
-        tried_[idx] = true;
-
-        if (secret_.find(static_cast<char>('A' + idx)) != std::string::npos) {
-            return all_found() ? Outcome::Won : Outcome::Hit;
-        }
-        ++errors_;
-        return errors_ >= kMaxErrors ? Outcome::Lost : Outcome::Miss;
+    if (secret_.find(static_cast<char>('A' + idx)) != std::string::npos) {
+        return all_found() ? Outcome::WIN : Outcome::STATE;
     }
+    ++errors_;
+    return errors_ >= kMaxErrors ? Outcome::LOSE : Outcome::STATE;
+}
 
-    // "P _ T H O N"
-    std::string mask() const {
-        std::string out;
-        for (char c : secret_) {
-            if (!out.empty()) out += ' ';
-            out += tried_[c - 'A'] ? c : '_';
-        }
-        return out;
+std::string Hangman::mask() const {
+    std::string out;
+    for (char c : secret_) {
+        if (!out.empty()) out += ' ';
+        out += tried_[c - 'A'] ? c : '_';
     }
+    return out;
+}
 
-    int lives() const { return kMaxErrors - errors_; }
-    const std::string& secret() const { return secret_; }
+int Hangman::lives() const {
+    return kMaxErrors - errors_;
+}
 
-private:
-    bool all_found() const {
-        for (char c : secret_)
-            if (!tried_[c - 'A']) return false;
-        return true;
-    }
+const std::string& Hangman::secret() const {
+    return secret_;
+}
 
-    std::string secret_;
-    std::array<bool, 26> tried_{};
-    int errors_ = 0;
-};
+bool Hangman::all_found() const {
+    for (char c : secret_)
+        if (!tried_[c - 'A']) return false;
+    return true;
+}
