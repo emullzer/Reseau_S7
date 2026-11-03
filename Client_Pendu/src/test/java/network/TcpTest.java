@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class TcpTest {
 
     private ServerSocket server;
-    private TcpLineClient client;
+    private TcpClient client;
     private final BlockingQueue<String> events = new LinkedBlockingQueue<>();
 
     private final LineListener listener = new LineListener() {
@@ -50,7 +50,7 @@ class TcpTest {
     }
 
     private Socket connectClient(int maxLineLength) throws IOException {
-        client = new TcpLineClient("localhost", server.getLocalPort(), 2000, maxLineLength, listener);
+        client = new TcpClient("localhost", server.getLocalPort(), listener);
         client.connect();
         return server.accept();
     }
@@ -147,7 +147,7 @@ class TcpTest {
     void connectionRefusedThrows() throws Exception {
         int port = server.getLocalPort();
         server.close();
-        TcpLineClient c = new TcpLineClient("localhost", port, 1000, 1000, listener);
+        TcpClient c = new TcpClient("localhost", port,  listener);
         assertThrows(IOException.class, c::connect);
     }
 }
