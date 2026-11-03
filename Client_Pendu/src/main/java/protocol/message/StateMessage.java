@@ -29,7 +29,7 @@ public class StateMessage implements Message {
      */
     private final MessageState state;
     /**
-     * Mot masqué (par exemple "_ _ a _")
+     * Mot masqué
      */
     private final String word;
     /**

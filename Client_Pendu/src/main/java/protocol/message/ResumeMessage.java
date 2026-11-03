@@ -7,7 +7,7 @@ import java.util.Objects;
 /**
  * Classe permettant au client de reprendre un jeu non terminé
  */
-//TODO voir si on change pas le session_id plutôt par un Sxx plutôt que xx et voir si player_name suffit ?
+
 public class ResumeMessage implements Message{
     /**
      * Identifiant de la requête
