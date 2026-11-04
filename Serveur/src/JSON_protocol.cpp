@@ -8,7 +8,7 @@ using json = nlohmann::json;
 
 namespace {
 
-json envelope(const std::string& type, const json& rid) {
+json create_message(const std::string& type, const json& rid) {
     json m;
     m["type"] = type;
     m["request_id"] = rid;
@@ -16,7 +16,7 @@ json envelope(const std::string& type, const json& rid) {
 }
 
 std::string error_reply(const json& rid, const std::string& code, const std::string& text) {
-    json m = envelope("ERROR", rid);
+    json m = create_message("ERROR", rid);
     m["code"] = code;
     m["message"] = text;
     return m.dump();
@@ -31,11 +31,11 @@ std::string state_reply(const json& rid, const std::string& sid, const Hangman& 
     json payload;
     payload["status"] = status;
     payload["word"] = g.mask();
-    payload["tried_letters"] = letters;
-    payload["remaining_attempts"] = g.lives();
-    if (g.is_over()) payload["revealed_word"] = g.secret();
+    payload["triedLetters"] = letters;
+    payload["remainingAttempts"] = g.lives();
+    if (g.is_over()) payload["revealedWord"] = g.secret();
 
-    json m = envelope("STATE", rid);
+    json m = create_message("STATE", rid);
     m["session_id"] = sid;
     m["payload"] = payload;
     return m.dump();
@@ -67,7 +67,7 @@ std::string JSONProtocol::handle(const std::string& line) {
                        ? in["payload"] : json::object();
 
     if (type == "HELLO") {
-        json m = envelope("HELLO", rid);
+        json m = create_message("HELLO", rid);
         m["payload"] = json::object();
         return m.dump();
     }
@@ -78,8 +78,7 @@ std::string JSONProtocol::handle(const std::string& line) {
     }
 
     if (type == "QUIT") {
-        sessions_.remove(sid);
-        return "";   // pas de reponse prevue pour QUIT
+        return "";   // pas de reponse prevue pour QUIT et garde en memoire la partie pr la reprendre
     }
 
     if (type == "RESUME") {
@@ -96,7 +95,7 @@ std::string JSONProtocol::handle(const std::string& line) {
         std::string letter = str_field(payload, "letter");
         if (letter.size() != 1)
             return error_reply(rid, "INVALID_LETTER", "une seule lettre attendue");
-        if (game->guess(letter[0]) == Outcome::Invalid)
+        if (game->guess(letter[0]) == Outcome::INVALID_LETTER)
             return error_reply(rid, "INVALID_LETTER", "caractere non valide");
 
         return state_reply(rid, sid, *game);

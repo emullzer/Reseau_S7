@@ -5,7 +5,7 @@
 #include <string>
 #include "session_manager.h"
 
-// Traite une ligne JSON recue et renvoie la reponse JSON ("" = pas de reponse)
+//traite une ligne JSON recue et renvoie la reponse JSON ("" = pas de reponse)
 class JSONProtocol {
 public:
     explicit JSONProtocol(SessionManager& sessions) : sessions_(sessions) {}

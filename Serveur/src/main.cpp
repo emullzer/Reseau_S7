@@ -1,4 +1,3 @@
-// main.cpp : demarrage du serveur et lecture des lignes
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>

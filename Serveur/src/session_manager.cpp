@@ -6,7 +6,7 @@
 
 namespace {
     const char* WORDS[] = {"PYTHON", "ORDINATEUR", "RESEAU", "SOCKET", "SERVEUR", "CLIENT", "PENDU"};
-    const int NB_WORDS = 7;
+    const int NB_WORDS = sizeof(WORDS);
 }
 
 std::string SessionManager::create() {
@@ -15,6 +15,11 @@ std::string SessionManager::create() {
     return sid;
 }
 
+/**
+ * Recherche si la session est deja associee a une partie
+ * @param sid ID de session
+ * @return Partie en cours si elle existe, nullptr sinon
+ */
 Hangman* SessionManager::find(const std::string& sid) {
     auto it = sessions_.find(sid);
     return it == sessions_.end() ? nullptr : &it->second;
