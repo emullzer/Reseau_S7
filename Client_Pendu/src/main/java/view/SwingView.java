@@ -205,7 +205,6 @@ public class SwingView implements GameView {
         JPanel buttons = new JPanel();
         buttons.add(newGameButton);
         buttons.add(resumeButton);
-        buttons.add(rawButton);
         buttons.add(quitButton);
 
         JPanel bottom = new JPanel(new GridLayout(2, 1));
