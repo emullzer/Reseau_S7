@@ -11,4 +11,8 @@ add_executable(Serveur
         src/hangman.cpp
         src/hangman.h
         src/main.cpp
+        src/session_manager.cpp
+        src/session_manager.h
+        src/JSON_protocol.cpp
+        src/JSON_protocol.h
 )

@@ -42,7 +42,7 @@ public:
      * @param max
      * @return
     */
-    bool recv_line(std::string& line, size_t max = 64) {
+    bool recv_line(std::string& line, size_t max = 4096) {
         line.clear();
         char c;
         for (;;) {

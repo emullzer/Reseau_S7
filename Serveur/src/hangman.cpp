@@ -44,3 +44,21 @@ bool Hangman::all_found() const {
         if (!tried_[c - 'A']) return false;
     return true;
 }
+std::string Hangman::tried_letters() const {
+    std::string out;
+    for (int i = 0; i < 26; ++i)
+        if (tried_[i]) out += static_cast<char>('A' + i);
+    return out;
+}
+
+bool Hangman::is_won() const {
+    return all_found();
+}
+
+bool Hangman::is_lost() const {
+    return errors_ >= kMaxErrors;
+}
+
+bool Hangman::is_over() const {
+    return is_won() || is_lost();
+}

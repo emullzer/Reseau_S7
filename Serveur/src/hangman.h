@@ -35,6 +35,21 @@ public:
      */
     const std::string& secret() const;
 
+    /**
+ * Lettres essayees, en majuscules et dans l'ordre alphabetique, ex. "AEZ".
+ */
+    std::string tried_letters() const;
+
+    /** Mot entierement trouve. */
+    bool is_won() const;
+
+    /** Plus de vies. */
+    bool is_lost() const;
+
+    /** Partie gagnee ou perdue. */
+    bool is_over() const;
+
+
 private:
     bool all_found() const;
 
