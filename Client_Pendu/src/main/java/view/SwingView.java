@@ -22,6 +22,9 @@ import java.util.Map;
 
 public class SwingView implements GameView {
 
+    private static final String HOST = "localhost";
+    private static final int PORT = 5000;
+
     private static final String CARD_CONNECT = "connect";
     private static final String CARD_GAME = "game";
     private static final int MAX_ATTEMPTS = 6;
@@ -30,9 +33,8 @@ public class SwingView implements GameView {
     private final CardLayout cards = new CardLayout();
     private final JPanel root = new JPanel(cards);
 
-    private final JTextField hostField = new JTextField("localhost", 12);
-    private final JTextField portField = new JTextField("5000", 12);
-    private final JTextField nameField = new JTextField(12);
+
+    private final JTextField nameField = new JTextField(15);
     private final JButton connectButton = new JButton("Se connecter");
     private final JLabel connectStatus = new JLabel(" ");
 
@@ -158,10 +160,6 @@ public class SwingView implements GameView {
 
     private JPanel buildConnectPanel() {
         JPanel form = new JPanel(new GridLayout(0, 2, 8, 8));
-        form.add(new JLabel("Serveur :"));
-        form.add(hostField);
-        form.add(new JLabel("Port :"));
-        form.add(portField);
         form.add(new JLabel("Pseudo :"));
         form.add(nameField);
         form.add(new JLabel());
@@ -179,6 +177,7 @@ public class SwingView implements GameView {
         panel.add(box);
 
         connectButton.addActionListener(e -> connectClicked());
+        nameField.addActionListener(e -> connectClicked()); // Entrée valide aussi
         return panel;
     }
 
@@ -243,23 +242,14 @@ public class SwingView implements GameView {
     }
 
     private void connectClicked() {
-        String host = hostField.getText().trim();
         String name = nameField.getText().trim();
-        int port;
-        try {
-            port = Integer.parseInt(portField.getText().trim());
-        } catch (NumberFormatException e) {
+        if (name.isEmpty()) {
             connectStatus.setForeground(Color.RED);
-            connectStatus.setText("Port invalide");
-            return;
-        }
-        if (host.isEmpty() || name.isEmpty() || port < 1 || port > 65535) {
-            connectStatus.setForeground(Color.RED);
-            connectStatus.setText("Hôte, port et pseudo sont obligatoires");
+            connectStatus.setText("Le pseudo est obligatoire");
             return;
         }
         if (listener != null) {
-            listener.onConnect(host, port, name);
+            listener.onConnect(HOST, PORT, name);
         }
     }
 

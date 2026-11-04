@@ -22,6 +22,7 @@ import java.util.List;
 
 public class MessageCodec {
 
+    // objet mapper pour la conversion JSON en objet Java
     private final ObjectMapper mapper = new ObjectMapper();
 
 
@@ -165,7 +166,7 @@ public class MessageCodec {
         List<Character> triedLetters = new ArrayList<>();
         for (JsonNode item : lettersNode) {
             if (!item.isTextual() || item.textValue().length() != 1) {
-                throw new ProtocolException("tried_letters must contain single-character strings");
+                throw new ProtocolException("tried_letters must be a single character");
             }
             triedLetters.add(item.textValue().charAt(0));
         }
@@ -184,7 +185,12 @@ public class MessageCodec {
         if (root.hasNonNull("request_id")) {
             requestId = integer(root, "request_id");
         }
-        JsonNode source = root.hasNonNull("code") ? root : payload(root);
+        JsonNode source;
+        if (root.hasNonNull("code")) {
+            source = root;
+        } else {
+            source = payload(root);
+        }
         MessageError code = MessageError.valueOf(text(source, "code"));
         String message = text(source, "message");
         return new ErrorMessage(message, code, requestId);
@@ -199,6 +205,7 @@ public class MessageCodec {
         return payload;
     }
 
+    //permet de faire la conversion en text
     private String text(JsonNode node, String field) throws ProtocolException {
         JsonNode value = node.get(field);
         if (value == null || !value.isTextual()) {
@@ -207,6 +214,7 @@ public class MessageCodec {
         return value.textValue();
     }
 
+    //permet de faire la conversion en int
     private int integer(JsonNode node, String field) throws ProtocolException {
         JsonNode value = node.get(field);
         if (value == null || !value.isInt()) {

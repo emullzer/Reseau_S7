@@ -30,7 +30,7 @@ public class TcpClient {
         out = new PrintWriter(socket.getOutputStream(), true, StandardCharsets.UTF_8);
 
         Thread reader = new Thread(this::readLoop);
-        reader.setDaemon(true);
+        reader.setDaemon(true); //pour marquer reader comlme thread d'arrière plan
         reader.start();
     }
 
