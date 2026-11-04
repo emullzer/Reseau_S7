@@ -239,7 +239,7 @@ public class SwingView implements GameView {
         panel.add(side, BorderLayout.EAST);
         panel.add(south, BorderLayout.SOUTH);
         return panel;
-    }
+    }//
 
     private void connectClicked() {
         String name = nameField.getText().trim();
