@@ -41,7 +41,7 @@ public class StateMessage implements Message {
      */
     private final int remainingAttempts;
     /**
-     * Mot révélé, présent uniquement si la partie est perdue (peut être null)
+     * Mot révélé présent uniquement si la partie est perdue 
      */
     private final String revealedWord;
 
