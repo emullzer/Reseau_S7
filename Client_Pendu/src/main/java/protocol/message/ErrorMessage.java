@@ -49,6 +49,22 @@ public class ErrorMessage implements Message{
     }
 
     /**
+     * Constructeur de la classe ErrorMessage sans identifiant de requête au cas où il n'y en a pas
+     * @param message message d'erreur
+     * @param code code d'erreur
+     */
+    public ErrorMessage(String message, MessageError code) {
+        if(message==null||message.isEmpty()){
+            throw new IllegalArgumentException("message must not be null or empty");
+        }
+        if(code==null){
+            throw new IllegalArgumentException("code must be not null");
+        }
+        this.message = message;
+        this.code = code;
+    }
+
+    /**
      * Retourne le code d'erreur
      * @return le code d'erreur
      */
