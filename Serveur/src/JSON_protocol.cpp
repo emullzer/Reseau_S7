@@ -6,7 +6,19 @@
 
 using json = nlohmann::json;
 
+constexpr const char* ERR_INVALID_MESSAGE = "INVALID_MESSAGE";
+constexpr const char* ERR_INVALID_LETTER  = "INVALID_LETTER";
+constexpr const char* ERR_INVALID_STATE   = "INVALID_STATE";
+constexpr const char* ERR_UNKNOWN_SESSION = "UNKOWN_SESSION";
+constexpr const char* ERR_ALREADY_USED = "ALREADY_USED";
+
 namespace {
+bool valid_request_id(const json& in) {
+    if (!in.contains("request_id")) return false;
+    const json& r = in.at("request_id");
+    if (!r.is_number_integer()|| r < 0) return false;
+    return true;
+}
 
 json create_message(const std::string& type, const json& rid) {
     json m;
@@ -31,9 +43,9 @@ std::string state_reply(const json& rid, const std::string& sid, const Hangman& 
     json payload;
     payload["status"] = status;
     payload["word"] = g.mask();
-    payload["triedLetters"] = letters;
-    payload["remainingAttempts"] = g.lives();
-    if (g.is_over()) payload["revealedWord"] = g.secret();
+    payload["tried_letters"] = letters;
+    payload["remaining_attempts"] = g.lives();
+    if (g.is_over()) payload["revealed_word"] = g.secret();
 
     json m = create_message("STATE", rid);
     m["session_id"] = sid;
@@ -54,12 +66,15 @@ std::string JSONProtocol::handle(const std::string& line) {
     try {
         in = json::parse(line);
     } catch (const json::parse_error&) {
-        return error_reply(rid, "BAD_REQUEST", "JSON invalide");
+        return error_reply(rid, ERR_INVALID_MESSAGE, "JSON invalide");
     }
-    if (!in.is_object()) return error_reply(rid, "BAD_REQUEST", "objet JSON attendu");
+    if (!in.is_object())
+        return error_reply(rid, ERR_INVALID_MESSAGE, "objet JSON attendu");
+    if (!valid_request_id(in))
+        return error_reply(nullptr, ERR_INVALID_MESSAGE, "request_id manquant ou invalide");
     if (in.contains("request_id")) rid = in["request_id"];
     if (!in.contains("type") || !in["type"].is_string())
-        return error_reply(rid, "BAD_REQUEST", "champ type manquant");
+        return error_reply(rid, ERR_INVALID_MESSAGE, "champ type manquant");
 
     const std::string type = in["type"].get<std::string>();
     const std::string sid = str_field(in, "session_id");
@@ -67,8 +82,11 @@ std::string JSONProtocol::handle(const std::string& line) {
                        ? in["payload"] : json::object();
 
     if (type == "HELLO") {
+        std::string name = str_field(payload, "player_name");
+        if (name.empty())
+            return error_reply(rid, ERR_INVALID_MESSAGE, "player_name manquant");
         json m = create_message("HELLO", rid);
-        m["payload"] = json::object();
+        m["payload"]["player_name"] = name;
         return m.dump();
     }
 
@@ -78,28 +96,40 @@ std::string JSONProtocol::handle(const std::string& line) {
     }
 
     if (type == "QUIT") {
-        return "";   // pas de reponse prevue pour QUIT et garde en memoire la partie pr la reprendre
+        std::string sid = str_field(in, "session_id");
+        Hangman* game = sessions_.find(sid);
+        if (!game)
+            return error_reply(rid, ERR_UNKNOWN_SESSION, "Session inconnue");
+
+        if (game->is_over())
+            sessions_.remove(sid);
+        return "";
     }
 
     if (type == "RESUME") {
         Hangman* game = sessions_.find(sid);
-        if (!game) return error_reply(rid, "UNKNOWN_SESSION", "session inconnue");
+        if (!game) return error_reply(rid, ERR_UNKNOWN_SESSION, "session inconnue");
         return state_reply(rid, sid, *game);
     }
 
     if (type == "LETTER") {
         Hangman* game = sessions_.find(sid);
-        if (!game) return error_reply(rid, "UNKNOWN_SESSION", "session inconnue");
-        if (game->is_over()) return error_reply(rid, "GAME_OVER", "partie terminee");
+        if (!game) return error_reply(rid, ERR_UNKNOWN_SESSION, "session inconnue");
+        if (game->is_over()) return error_reply(rid, ERR_INVALID_STATE, "partie terminee");
 
         std::string letter = str_field(payload, "letter");
         if (letter.size() != 1)
-            return error_reply(rid, "INVALID_LETTER", "une seule lettre attendue");
-        if (game->guess(letter[0]) == Outcome::INVALID_LETTER)
-            return error_reply(rid, "INVALID_LETTER", "caractere non valide");
+            return error_reply(rid, ERR_INVALID_LETTER, "une seule lettre attendue");
+
+        auto r = game->guess(letter[0]);
+        if (r == Outcome::INVALID_LETTER)
+            return error_reply(rid, ERR_INVALID_LETTER, "Lettre invalide (A-Z)");
+        if (r == Outcome::ALREADY_USED)
+            return error_reply(rid, ERR_ALREADY_USED, "Lettre deja proposee");
 
         return state_reply(rid, sid, *game);
     }
 
-    return error_reply(rid, "UNKNOWN_TYPE", "type inconnu : " + type);
+    return error_reply(rid, ERR_INVALID_MESSAGE, "type inconnu : " + type);
 }
+

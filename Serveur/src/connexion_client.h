@@ -30,7 +30,7 @@ public:
      * @param max longueur maximale de la ligne
      * @return true si une ligne a ete lue
      */
-    bool recv_line(std::string& line, std::size_t max = 64);
+    bool recv_line(std::string& line, std::size_t max = 4096);
 
 private:
     int fd_;

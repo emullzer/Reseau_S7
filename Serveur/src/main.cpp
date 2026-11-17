@@ -7,7 +7,7 @@
 #include "session_manager.h"
 #include "JSON_protocol.h"
 
-#define PORT "8877"
+#define PORT "5000"
 
 int main() {
     srand(static_cast<unsigned>(time(nullptr)));

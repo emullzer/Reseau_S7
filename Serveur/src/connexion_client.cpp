@@ -20,7 +20,7 @@ bool connexionClient::send_line(const std::string& s) {
     std::string msg = s + "\n";
     std::size_t off = 0;
     while (off < msg.size()) {
-        ssize_t n = send(fd_, msg.data() + off, msg.size() - off, 0);
+        ssize_t n = send(fd_, msg.data() + off, msg.size() - off, MSG_NOSIGNAL);
         if (n < 0 && errno == EINTR) continue;
         if (n <= 0) return false;
         off += static_cast<std::size_t>(n);
