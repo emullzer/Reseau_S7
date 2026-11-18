@@ -66,4 +66,9 @@ public class TcpClient {
         }
         listener.onDisconnected(cause);
     }
+
+    //permet de récupérer le socket
+    public Socket getSocket() {
+        return socket;
+    }
 }

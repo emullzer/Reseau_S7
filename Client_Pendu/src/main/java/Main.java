@@ -90,6 +90,8 @@ public class Main {
                     new Thread(() -> {
                         try {
                             client.connect();
+                            System.out.println("Connecté via : " + client.getSocket().getInetAddress().getHostAddress());
+                            clientRef.set(client);
                             clientRef.set(client);
                             view.showConnected();
                             int reqId = requestCounter.getAndIncrement();
