@@ -37,6 +37,8 @@ public:
     void remove(const std::string& sid);
     void remove_client(const std::shared_ptr<connexionClient>& client);
 
+    static std::string generate_token();
+
 private:
     std::unordered_map<std::string, GameSession> sessions_;
     int next_id_ = 1;

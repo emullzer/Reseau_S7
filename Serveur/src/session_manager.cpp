@@ -4,6 +4,7 @@
 #include "session_manager.h"
 #include <algorithm>
 #include <cstdlib>
+#include <random>
 
 #include "connexion_client.h"
 
@@ -25,7 +26,7 @@ std::string SessionManager::generate_room_code() {
 }
 
 std::string SessionManager::create(std::shared_ptr<connexionClient> client, const std::string& player_name) {
-    std::string sid = "S" + std::to_string(next_id_++);
+    std::string sid = generate_token();
     GameSession session(Hangman(WORDS[rand() % NB_WORDS]), false);
     if (client) session.clients.push_back(std::move(client));
     session.players.push_back(player_name);
@@ -89,4 +90,23 @@ void SessionManager::remove_client(const std::shared_ptr<connexionClient>& clien
             ++it;
         }
     }
+}
+
+/**
+ * Cree un token pour pouvoir reprendre la partie si jamais elle est interrompue.
+ * @return
+ */
+std::string SessionManager::generate_token() {
+    static const char HEXA[] = "0123456789abcdef";
+    std::random_device rd; //TODO peut etre changer de methode, pas assez securise
+    std::string token;
+    token.reserve(32); // allouer memoire
+    for (int i = 0; i < 4; ++i) {
+        unsigned int v = rd();
+        for (int j = 0; j < 8; ++j) {
+            token += HEXA[v & 0xF];
+            v >>= 4;
+        }
+    }
+    return token;
 }

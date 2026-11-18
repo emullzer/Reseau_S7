@@ -97,7 +97,7 @@ void JSONProtocol::handle(const std::string& line, const std::shared_ptr<connexi
     json payload = (in.contains("payload") && in["payload"].is_object())
                        ? in["payload"] : json::object();
 
-    if (type == "HELLO") {
+    if (type == "HELLO") {//TODO faire en sorte qu'on check si une partie est en cours via le token.
         std::string name = str_field(payload, "player_name");
         if (name.empty()) {
             sender->send_line(error_reply(rid, ERR_INVALID_MESSAGE, "player_name manquant"));
