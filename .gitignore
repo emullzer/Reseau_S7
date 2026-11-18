@@ -27,3 +27,4 @@ Makefile
 # Vim
 *.swp
 *.swo
+Client/
