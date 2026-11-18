@@ -8,14 +8,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import protocol.enumMessage.MessageError;
 import protocol.enumMessage.MessageState;
 import protocol.enumMessage.MessageType;
-import protocol.message.ErrorMessage;
-import protocol.message.HelloMessage;
-import protocol.message.LetterMessage;
-import protocol.message.Message;
-import protocol.message.NewGameMessage;
-import protocol.message.QuitMessage;
-import protocol.message.ResumeMessage;
-import protocol.message.StateMessage;
+import protocol.message.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,10 +37,26 @@ public class MessageCodec {
                 NewGameMessage m = (NewGameMessage) message;
                 root.putObject("payload").put("player_name", m.getPlayerName());
             }
+            case CREATE_ROOM -> {
+                CreateRoomMessage m = (CreateRoomMessage) message;
+                root.putObject("payload").put("player_name", m.getPlayerName());
+            }
+            case JOIN_ROOM -> {
+                JoinRoomMessage m = (JoinRoomMessage) message;
+                root.put("session_id", m.getSessionId());
+                root.putObject("payload").put("player_name", m.getPlayerName());
+            }
             case LETTER -> {
                 LetterMessage m = (LetterMessage) message;
                 root.put("session_id", m.getSessionId());
                 root.putObject("payload").put("letter", String.valueOf(m.getLetter()));
+            }
+            case CHAT -> {
+                ChatMessage m = (ChatMessage) message;
+                root.put("session_id", m.getSessionId());
+                ObjectNode payload = root.putObject("payload");
+                payload.put("player_name", m.getPlayerName());
+                payload.put("text", m.getText());
             }
             case QUIT -> {
                 QuitMessage m = (QuitMessage) message;
@@ -104,11 +113,15 @@ public class MessageCodec {
             return switch (type) {
                 case HELLO -> decodeHello(root);
                 case NEW_GAME -> decodeNewGame(root);
+                case CREATE_ROOM -> decodeCreateRoom(root);
+                case JOIN_ROOM -> decodeJoinRoom(root);
                 case LETTER -> decodeLetter(root);
                 case QUIT -> decodeQuit(root);
                 case RESUME -> decodeResume(root);
                 case STATE -> decodeState(root);
                 case ERROR -> decodeError(root);
+                case CHAT -> decodeChat(root);
+
             };
         } catch (IllegalArgumentException e) {
             throw new ProtocolException("Invalid message: " + e.getMessage(), e);
@@ -125,6 +138,19 @@ public class MessageCodec {
         int requestId = integer(root, "request_id");
         String playerName = text(payload(root), "player_name");
         return new NewGameMessage(requestId, playerName);
+    }
+
+    private Message decodeCreateRoom(JsonNode root) throws ProtocolException {
+        int requestId = integer(root, "request_id");
+        String playerName = text(payload(root), "player_name");
+        return new CreateRoomMessage(requestId, playerName);
+    }
+
+    private Message decodeJoinRoom(JsonNode root) throws ProtocolException {
+        int requestId = integer(root, "request_id");
+        String sessionId = text(root, "session_id");
+        String playerName = text(payload(root), "player_name");
+        return new JoinRoomMessage(requestId, sessionId, playerName);
     }
 
     private Message decodeLetter(JsonNode root) throws ProtocolException {
@@ -178,6 +204,14 @@ public class MessageCodec {
 
         return new StateMessage(requestId, sessionId, status, word,
                 triedLetters, remaining, revealedWord);
+    }
+    private Message decodeChat(JsonNode root) throws ProtocolException {
+        int requestId = integer(root, "request_id");
+        String sessionId = text(root, "session_id");
+        JsonNode p = payload(root);
+        String playerName = text(p, "player_name");
+        String text = text(p, "text");
+        return new ChatMessage(requestId, sessionId, playerName, text);
     }
 
     private Message decodeError(JsonNode root) throws ProtocolException {

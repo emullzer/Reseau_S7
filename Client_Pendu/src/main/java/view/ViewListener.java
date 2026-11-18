@@ -8,6 +8,12 @@ public interface ViewListener {
 
     void onNewGame();
 
+    void onCreateRoom();
+
+    void onJoinRoom(String roomCode);
+
+    void onChatMessage(String text);
+
     void onResume();
 
     void onQuit();

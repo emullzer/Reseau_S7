@@ -14,6 +14,9 @@ public:
     connexionClient(const connexionClient&) = delete;
     connexionClient& operator=(const connexionClient&) = delete;
 
+    connexionClient(connexionClient&& other) noexcept;
+    connexionClient& operator=(connexionClient&& other) noexcept;
+
     bool valid() const;
 
     /**

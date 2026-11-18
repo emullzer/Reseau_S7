@@ -6,6 +6,8 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -22,8 +24,8 @@ import java.util.Map;
 
 public class SwingView implements GameView {
 
-    private static final String HOST = "localhost";
-    private static final int PORT = 5000;
+    private static final String HOST = "127.0.0.1";
+    private static final int PORT = 5001;
 
     private static final String CARD_CONNECT = "connect";
     private static final String CARD_GAME = "game";
@@ -40,14 +42,21 @@ public class SwingView implements GameView {
 
     private final HangmanPanel hangmanPanel = new HangmanPanel(MAX_ATTEMPTS);
     private final JLabel wordLabel = new JLabel(" ", SwingConstants.CENTER);
+    private final JLabel roomLabel = new JLabel("Mode : -");
     private final JLabel attemptsLabel = new JLabel("Essais restants : -");
     private final JLabel triedLabel = new JLabel("Lettres jouées : -");
     private final JLabel statusLabel = new JLabel(" ", SwingConstants.CENTER);
-    private final JButton newGameButton = new JButton("Nouvelle partie");
+    private final JButton newGameButton = new JButton("Nouvelle partie (Solo)");
+    private final JButton createRoomButton = new JButton("Créer une room");
+    private final JButton joinRoomButton = new JButton("Rejoindre une room");
     private final JButton resumeButton = new JButton("Reprendre");
     private final JButton rawButton = new JButton("Message brut");
     private final JButton quitButton = new JButton("Quitter");
     private final Map<Character, JButton> keys = new HashMap<>();
+
+    private final JTextArea chatArea = new JTextArea(12, 22);
+    private final JTextField chatInput = new JTextField();
+    private final JButton chatSendButton = new JButton("Envoyer");
 
     private ViewListener listener;
     private boolean playing;
@@ -58,14 +67,33 @@ public class SwingView implements GameView {
         root.add(buildGamePanel(), CARD_GAME);
         frame.setContentPane(root);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(760, 640);
+        frame.setSize(860, 640);
         frame.setLocationRelativeTo(null);
         resumeButton.setEnabled(false);
         newGameButton.setEnabled(false);
+        createRoomButton.setEnabled(false);
+        joinRoomButton.setEnabled(false);
+        chatInput.setEnabled(false);
+        chatSendButton.setEnabled(false);
     }
 
     public void show() {
         frame.setVisible(true);
+    }
+
+    public void setRoomInfo(String info) {
+        SwingUtilities.invokeLater(() -> roomLabel.setText(info));
+    }
+
+    public void appendChat(String sender, String message) {
+        SwingUtilities.invokeLater(() -> {
+            chatArea.append(sender + " : " + message + "\n");
+            chatArea.setCaretPosition(chatArea.getDocument().getLength());
+        });
+    }
+
+    public void clearChat() {
+        SwingUtilities.invokeLater(() -> chatArea.setText(""));
     }
 
     @Override
@@ -91,10 +119,16 @@ public class SwingView implements GameView {
             lastTried = List.of();
             refreshKeys();
             wordLabel.setText(" ");
+            roomLabel.setText("Mode : -");
             attemptsLabel.setText("Essais restants : -");
             triedLabel.setText("Lettres jouées : -");
             hangmanPanel.setErrors(0);
+            chatArea.setText("");
+            chatInput.setEnabled(false);
+            chatSendButton.setEnabled(false);
             newGameButton.setEnabled(true);
+            createRoomButton.setEnabled(true);
+            joinRoomButton.setEnabled(true);
             resumeButton.setEnabled(false);
             setStatus("Connecté", Color.DARK_GRAY);
             cards.show(root, CARD_GAME);
@@ -111,7 +145,11 @@ public class SwingView implements GameView {
             attemptsLabel.setText("Essais restants : " + remainingAttempts);
             triedLabel.setText("Lettres jouées : " + (tried.isEmpty() ? "-" : joined(tried)));
             hangmanPanel.setErrors(MAX_ATTEMPTS - remainingAttempts);
+            chatInput.setEnabled(true);
+            chatSendButton.setEnabled(true);
             newGameButton.setEnabled(true);
+            createRoomButton.setEnabled(true);
+            joinRoomButton.setEnabled(true);
             resumeButton.setEnabled(false);
             refreshKeys();
             setStatus(" ", Color.DARK_GRAY);
@@ -136,7 +174,11 @@ public class SwingView implements GameView {
             playing = false;
             refreshKeys();
             connectButton.setEnabled(true);
+            chatInput.setEnabled(false);
+            chatSendButton.setEnabled(false);
             newGameButton.setEnabled(false);
+            createRoomButton.setEnabled(false);
+            joinRoomButton.setEnabled(false);
             resumeButton.setEnabled(true);
             setStatus("Connexion perdue : " + reason, Color.RED);
         });
@@ -185,10 +227,40 @@ public class SwingView implements GameView {
         wordLabel.setFont(new Font(Font.MONOSPACED, Font.BOLD, 40));
         wordLabel.setBorder(BorderFactory.createEmptyBorder(15, 10, 15, 10));
 
-        JPanel side = new JPanel(new GridLayout(0, 1, 5, 5));
+        JPanel infoPanel = new JPanel(new GridLayout(0, 1, 5, 5));
+        roomLabel.setFont(roomLabel.getFont().deriveFont(Font.BOLD, 14f));
+        infoPanel.add(roomLabel);
+        infoPanel.add(attemptsLabel);
+        infoPanel.add(triedLabel);
+
+        chatArea.setEditable(false);
+        chatArea.setLineWrap(true);
+        chatArea.setWrapStyleWord(true);
+        JScrollPane chatScroll = new JScrollPane(chatArea);
+
+        JPanel chatInputPanel = new JPanel(new BorderLayout(4, 0));
+        chatInputPanel.add(chatInput, BorderLayout.CENTER);
+        chatInputPanel.add(chatSendButton, BorderLayout.EAST);
+
+        Runnable sendChatAction = () -> {
+            String text = chatInput.getText().trim();
+            if (!text.isEmpty() && listener != null) {
+                listener.onChatMessage(text);
+                chatInput.setText("");
+            }
+        };
+        chatSendButton.addActionListener(e -> sendChatAction.run());
+        chatInput.addActionListener(e -> sendChatAction.run());
+
+        JPanel chatPanel = new JPanel(new BorderLayout(0, 5));
+        chatPanel.setBorder(BorderFactory.createTitledBorder("Chat"));
+        chatPanel.add(chatScroll, BorderLayout.CENTER);
+        chatPanel.add(chatInputPanel, BorderLayout.SOUTH);
+
+        JPanel side = new JPanel(new BorderLayout(0, 10));
         side.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        side.add(attemptsLabel);
-        side.add(triedLabel);
+        side.add(infoPanel, BorderLayout.NORTH);
+        side.add(chatPanel, BorderLayout.CENTER);
 
         JPanel keyboard = new JPanel(new GridLayout(2, 13, 3, 3));
         keyboard.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
@@ -204,6 +276,8 @@ public class SwingView implements GameView {
 
         JPanel buttons = new JPanel();
         buttons.add(newGameButton);
+        buttons.add(createRoomButton);
+        buttons.add(joinRoomButton);
         buttons.add(resumeButton);
         buttons.add(quitButton);
 
@@ -217,7 +291,21 @@ public class SwingView implements GameView {
 
         newGameButton.addActionListener(e -> {
             if (listener != null) {
+                clearChat();
                 listener.onNewGame();
+            }
+        });
+        createRoomButton.addActionListener(e -> {
+            if (listener != null) {
+                clearChat();
+                listener.onCreateRoom();
+            }
+        });
+        joinRoomButton.addActionListener(e -> {
+            String code = JOptionPane.showInputDialog(frame, "Code de la room à rejoindre :");
+            if (code != null && !code.trim().isEmpty() && listener != null) {
+                clearChat();
+                listener.onJoinRoom(code.trim().toUpperCase());
             }
         });
         resumeButton.addActionListener(e -> {

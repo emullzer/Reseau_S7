@@ -12,6 +12,19 @@ connexionClient::~connexionClient() {
     if (fd_ >= 0) close(fd_);
 }
 
+connexionClient::connexionClient(connexionClient&& other) noexcept : fd_(other.fd_) {
+    other.fd_ = -1;
+}
+
+connexionClient& connexionClient::operator=(connexionClient&& other) noexcept {
+    if (this != &other) {
+        if (fd_ >= 0) close(fd_);
+        fd_ = other.fd_;
+        other.fd_ = -1;
+    }
+    return *this;
+}
+
 bool connexionClient::valid() const {
     return fd_ >= 0;
 }

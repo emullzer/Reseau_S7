@@ -10,13 +10,13 @@ constexpr const char* ERR_INVALID_MESSAGE = "INVALID_MESSAGE";
 constexpr const char* ERR_INVALID_LETTER  = "INVALID_LETTER";
 constexpr const char* ERR_INVALID_STATE   = "INVALID_STATE";
 constexpr const char* ERR_UNKNOWN_SESSION = "UNKOWN_SESSION";
-constexpr const char* ERR_ALREADY_USED = "ALREADY_USED";
+constexpr const char* ERR_ALREADY_USED    = "ALREADY_USED";
 
 namespace {
 bool valid_request_id(const json& in) {
     if (!in.contains("request_id")) return false;
     const json& r = in.at("request_id");
-    if (!r.is_number_integer()|| r < 0) return false;
+    if (!r.is_number_integer() || r < 0) return false;
     return true;
 }
 
@@ -34,7 +34,8 @@ std::string error_reply(const json& rid, const std::string& code, const std::str
     return m.dump();
 }
 
-std::string state_reply(const json& rid, const std::string& sid, const Hangman& g) {
+std::string state_reply(const json& rid, const std::string& sid, const GameSession& session) {
+    const Hangman& g = session.game;
     std::string status = g.is_won() ? "WIN" : (g.is_lost() ? "LOSE" : "IN_PROGRESS");
 
     json letters = json::array();
@@ -53,6 +54,14 @@ std::string state_reply(const json& rid, const std::string& sid, const Hangman& 
     return m.dump();
 }
 
+void broadcast(GameSession& session, const std::string& msg) {
+    for (auto& c : session.clients) {
+        if (c && c->valid()) {
+            c->send_line(msg);
+        }
+    }
+}
+
 std::string str_field(const json& obj, const char* key) {
     if (obj.contains(key) && obj[key].is_string()) return obj[key].get<std::string>();
     return "";
@@ -60,21 +69,28 @@ std::string str_field(const json& obj, const char* key) {
 
 } // namespace
 
-std::string JSONProtocol::handle(const std::string& line) {
+void JSONProtocol::handle(const std::string& line, const std::shared_ptr<connexionClient>& sender) {
     json rid = nullptr;
     json in;
     try {
         in = json::parse(line);
     } catch (const json::parse_error&) {
-        return error_reply(rid, ERR_INVALID_MESSAGE, "JSON invalide");
+        sender->send_line(error_reply(rid, ERR_INVALID_MESSAGE, "JSON invalide"));
+        return;
     }
-    if (!in.is_object())
-        return error_reply(rid, ERR_INVALID_MESSAGE, "objet JSON attendu");
-    if (!valid_request_id(in))
-        return error_reply(nullptr, ERR_INVALID_MESSAGE, "request_id manquant ou invalide");
+    if (!in.is_object()) {
+        sender->send_line(error_reply(rid, ERR_INVALID_MESSAGE, "objet JSON attendu"));
+        return;
+    }
+    if (!valid_request_id(in)) {
+        sender->send_line(error_reply(nullptr, ERR_INVALID_MESSAGE, "request_id manquant ou invalide"));
+        return;
+    }
     if (in.contains("request_id")) rid = in["request_id"];
-    if (!in.contains("type") || !in["type"].is_string())
-        return error_reply(rid, ERR_INVALID_MESSAGE, "champ type manquant");
+    if (!in.contains("type") || !in["type"].is_string()) {
+        sender->send_line(error_reply(rid, ERR_INVALID_MESSAGE, "champ type manquant"));
+        return;
+    }
 
     const std::string type = in["type"].get<std::string>();
     const std::string sid = str_field(in, "session_id");
@@ -83,53 +99,137 @@ std::string JSONProtocol::handle(const std::string& line) {
 
     if (type == "HELLO") {
         std::string name = str_field(payload, "player_name");
-        if (name.empty())
-            return error_reply(rid, ERR_INVALID_MESSAGE, "player_name manquant");
+        if (name.empty()) {
+            sender->send_line(error_reply(rid, ERR_INVALID_MESSAGE, "player_name manquant"));
+            return;
+        }
         json m = create_message("HELLO", rid);
         m["payload"]["player_name"] = name;
-        return m.dump();
+        sender->send_line(m.dump());
+        return;
     }
 
     if (type == "NEW_GAME") {
-        std::string nsid = sessions_.create();
-        return state_reply(rid, nsid, *sessions_.find(nsid));
+        std::string name = str_field(payload, "player_name");
+        std::string nsid = sessions_.create(sender, name);
+        sender->send_line(state_reply(rid, nsid, *sessions_.find(nsid)));
+        return;
+    }
+    if (type == "CHAT") {
+        GameSession* session = sessions_.find(sid);
+        if (!session) {
+            sender->send_line(error_reply(rid, ERR_UNKNOWN_SESSION, "Session inconnue"));
+            return;
+        }
+        std::string name = str_field(payload, "player_name");
+        std::string text = str_field(payload, "text");
+        if (text.empty()) {
+            sender->send_line(error_reply(rid, ERR_INVALID_MESSAGE, "Message vide"));
+            return;
+        }
+
+        json m = create_message("CHAT", rid);
+        m["session_id"] = sid;
+        m["payload"]["player_name"] = name.empty() ? "Joueur" : name;
+        m["payload"]["text"] = text;
+
+        broadcast(*session, m.dump());
+        return;
+    }
+
+    if (type == "CREATE_ROOM") {
+        std::string name = str_field(payload, "player_name");
+        if (name.empty()) {
+            sender->send_line(error_reply(rid, ERR_INVALID_MESSAGE, "player_name manquant"));
+            return;
+        }
+        std::string code = sessions_.create_room(sender, name);
+        sender->send_line(state_reply(rid, code, *sessions_.find(code)));
+        return;
+    }
+
+    if (type == "JOIN_ROOM") {
+        std::string name = str_field(payload, "player_name");
+        std::string code = sid;
+        for (char& c : code) c = static_cast<char>(toupper(static_cast<unsigned char>(c)));
+
+        std::string err;
+        if (!sessions_.join_room(code, sender, name, err)) {
+            sender->send_line(error_reply(rid, ERR_UNKNOWN_SESSION, err));
+            return;
+        }
+        GameSession* session = sessions_.find(code);
+        broadcast(*session, state_reply(rid, code, *session));
+        return;
     }
 
     if (type == "QUIT") {
-        std::string sid = str_field(in, "session_id");
-        Hangman* game = sessions_.find(sid);
-        if (!game)
-            return error_reply(rid, ERR_UNKNOWN_SESSION, "Session inconnue");
+        GameSession* session = sessions_.find(sid);
+        if (!session) {
+            sender->send_line(error_reply(rid, ERR_UNKNOWN_SESSION, "Session inconnue"));
+            return;
+        }
 
-        if (game->is_over())
+        if (session->game.is_over())
             sessions_.remove(sid);
-        return "";
+        return;
     }
 
     if (type == "RESUME") {
-        Hangman* game = sessions_.find(sid);
-        if (!game) return error_reply(rid, ERR_UNKNOWN_SESSION, "session inconnue");
-        return state_reply(rid, sid, *game);
+        GameSession* session = sessions_.find(sid);
+        if (!session) {
+            sender->send_line(error_reply(rid, ERR_UNKNOWN_SESSION, "session inconnue"));
+            return;
+        }
+        sender->send_line(state_reply(rid, sid, *session));
+        return;
     }
 
     if (type == "LETTER") {
-        Hangman* game = sessions_.find(sid);
-        if (!game) return error_reply(rid, ERR_UNKNOWN_SESSION, "session inconnue");
-        if (game->is_over()) return error_reply(rid, ERR_INVALID_STATE, "partie terminee");
+        GameSession* session = sessions_.find(sid);
+        if (!session) {
+            sender->send_line(error_reply(rid, ERR_UNKNOWN_SESSION, "session inconnue"));
+            return;
+        }
+        if (session->game.is_over()) {
+            sender->send_line(error_reply(rid, ERR_INVALID_STATE, "partie terminee"));
+            return;
+        }
+
+        if (session->is_multiplayer) {
+            if (session->clients.size() < 2) {
+                sender->send_line(error_reply(rid, ERR_INVALID_STATE, "En attente d'un deuxieme joueur"));
+                return;
+            }
+            if (session->clients[session->current_turn] != sender) {
+                sender->send_line(error_reply(rid, ERR_INVALID_STATE, "Ce n'est pas ton tour"));
+                return;
+            }
+        }
 
         std::string letter = str_field(payload, "letter");
-        if (letter.size() != 1)
-            return error_reply(rid, ERR_INVALID_LETTER, "une seule lettre attendue");
+        if (letter.size() != 1) {
+            sender->send_line(error_reply(rid, ERR_INVALID_LETTER, "une seule lettre attendue"));
+            return;
+        }
 
-        auto r = game->guess(letter[0]);
-        if (r == Outcome::INVALID_LETTER)
-            return error_reply(rid, ERR_INVALID_LETTER, "Lettre invalide (A-Z)");
-        if (r == Outcome::ALREADY_USED)
-            return error_reply(rid, ERR_ALREADY_USED, "Lettre deja proposee");
+        auto r = session->game.guess(letter[0]);
+        if (r == Outcome::INVALID_LETTER) {
+            sender->send_line(error_reply(rid, ERR_INVALID_LETTER, "Lettre invalide (A-Z)"));
+            return;
+        }
+        if (r == Outcome::ALREADY_USED) {
+            sender->send_line(error_reply(rid, ERR_ALREADY_USED, "Lettre deja proposee"));
+            return;
+        }
 
-        return state_reply(rid, sid, *game);
+        if (session->is_multiplayer && !session->clients.empty()) {
+            session->current_turn = (session->current_turn + 1) % session->clients.size();
+        }
+
+        broadcast(*session, state_reply(rid, sid, *session));
+        return;
     }
 
-    return error_reply(rid, ERR_INVALID_MESSAGE, "type inconnu : " + type);
+    sender->send_line(error_reply(rid, ERR_INVALID_MESSAGE, "type inconnu : " + type));
 }
-
